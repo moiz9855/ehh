@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050406">
+<title>Mosquito Patrol</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦟</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#050406;
+    --ember:#e5202f;
+    --rose:#ff5b7a;
+    --lotus:#ffb8d1;
+    --moon:#f3ecf9;
+    --mist:#b9adc9;
+    --gold:#ffd08a;
+    --ui:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --hand:'Caveat','Segoe Script','Bradley Hand',cursive;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%;background:var(--night)}
+  body{
+    font-family:var(--ui);font-weight:500;color:var(--moon);
+    background:radial-gradient(ellipse 80% 45% at 50% 100%,rgba(229,32,47,.22),transparent 70%),radial-gradient(ellipse 70% 40% at 50% 0%,#170a12,transparent 70%),var(--night);
+    -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;overscroll-behavior:none;
+    padding:calc(env(safe-area-inset-top,0px) + 22px) 18px calc(env(safe-area-inset-bottom,0px) + 22px);
+    display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;background-attachment:fixed
+  }
+  #app{width:min(100%,430px);text-align:center}
+  h1{font-weight:600;font-size:2.3rem;line-height:1.1;text-shadow:0 0 26px rgba(229,32,47,.6)}
+  .tag{color:var(--mist);margin-top:4px}
+
+  .bar{display:flex;align-items:center;gap:12px;margin:20px 0 18px}
+  .stat{font-size:1.05rem;color:var(--mist);white-space:nowrap}
+  .stat b{font-size:1.6rem;color:var(--moon);font-weight:600}
+  .timer{flex:1;height:12px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .timer i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,var(--ember),var(--lotus));transform-origin:left;transition:transform .1s linear}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid.shake{animation:shake .35s}
+  @keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+  .hole{
+    position:relative;aspect-ratio:1;border-radius:50%;overflow:hidden;cursor:pointer;border:0;font:inherit;color:inherit;
+    background:radial-gradient(circle at 50% 62%,#0b1f17 0%,#05100b 55%,#000 100%);
+    box-shadow:0 0 0 2px rgba(255,184,209,.16),0 0 26px rgba(229,32,47,.12),inset 0 -12px 22px rgba(0,0,0,.7)
+  }
+  .hole:focus-visible{outline:3px solid var(--lotus);outline-offset:3px}
+  .hole::after{ /* little water shine */
+    content:"";position:absolute;left:22%;right:22%;bottom:10%;height:14%;border-radius:50%;
+    background:radial-gradient(ellipse,rgba(255,184,209,.16),transparent 70%)
+  }
+  .crit{
+    position:absolute;left:0;right:0;bottom:12%;font-size:clamp(2.6rem,15vw,4rem);line-height:1;z-index:1;
+    transform:translateY(125%);transition:transform .13s ease-out;pointer-events:none;
+    filter:drop-shadow(0 0 8px rgba(255,255,255,.18))
+  }
+  .hole.up .crit{transform:translateY(0)}
+  .hole.gold .crit{filter:drop-shadow(0 0 12px var(--gold)) drop-shadow(0 0 4px var(--gold))}
+  .hole.hit{animation:flash .28s}
+  @keyframes flash{30%{box-shadow:0 0 0 3px var(--lotus),0 0 40px rgba(255,184,209,.55),inset 0 -12px 22px rgba(0,0,0,.7)}}
+  .hole.oops{animation:oops .35s}
+  @keyframes oops{30%{box-shadow:0 0 0 3px var(--ember),0 0 40px rgba(229,32,47,.8),inset 0 -12px 22px rgba(0,0,0,.7)}}
+
+  .float{position:fixed;z-index:20;pointer-events:none;font-weight:600;font-size:1.5rem;transform:translate(-50%,-50%);animation:rise .9s ease-out forwards;text-shadow:0 2px 8px #000}
+  @keyframes rise{to{opacity:0;transform:translate(-50%,-90px)}}
+
+  .legend{display:flex;justify-content:center;flex-wrap:wrap;gap:8px 18px;margin-top:24px;color:var(--mist);font-size:.98rem}
+
+  .overlay{
+    position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
+    padding:28px 22px;background:rgba(5,4,6,.82);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+    overflow-y:auto;transition:opacity .35s,visibility .35s
+  }
+  .overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .overlay .inner{width:min(100%,400px);margin:auto}
+  .lilyicon{width:74px;height:74px;margin:0 auto 6px;display:block;filter:drop-shadow(0 0 12px rgba(229,32,47,.7))}
+  .btn{
+    margin-top:26px;font:600 1.15rem var(--ui);color:#fff;border:0;border-radius:99px;padding:14px 44px;cursor:pointer;
+    background:linear-gradient(180deg,var(--rose),var(--ember));box-shadow:0 0 28px rgba(229,32,47,.55),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .12s
+  }
+  .btn:active{transform:scale(.96)}
+  .btn:focus-visible{outline:3px solid var(--lotus);outline-offset:3px}
+
+  .big{font-size:4rem;font-weight:600;line-height:1;margin:2px 0;text-shadow:0 0 30px rgba(255,91,122,.6)}
+  .rank{font-size:1.35rem;color:var(--lotus)}
+  .quip{color:var(--mist);margin-top:4px}
+  .note{
+    margin-top:26px;text-align:left;padding:30px 26px 24px;border-radius:4px 22px 4px 22px;position:relative;
+    background:linear-gradient(180deg,#140e18,#0d0910);border:1px solid rgba(255,184,209,.25);
+    box-shadow:0 0 50px rgba(229,32,47,.14);transform:rotate(-.8deg);
+    opacity:0;animation:noteIn 1s .5s cubic-bezier(.3,1.2,.5,1) forwards
+  }
+  @keyframes noteIn{from{opacity:0;transform:translateY(24px) rotate(-3deg)}to{opacity:1;transform:rotate(-.8deg)}}
+  .note p{font-family:var(--hand);font-weight:600;font-size:1.55rem;line-height:1.28;color:#eadff5;margin-bottom:.7em}
+  .note .to{font-size:2rem;color:var(--moon);font-weight:700}
+  .note .sign{text-align:right;font-size:2rem;font-weight:700;color:var(--moon);margin:.2em 0 0}
+  .note .tape{position:absolute;top:-11px;left:50%;width:76px;height:22px;margin-left:-38px;background:rgba(255,184,209,.35);transform:rotate(-3deg)}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+    .note{opacity:1}
+  }
+</style>
+</head>
+<body>
+
+<main id="app">
+  <h1>Mosquito Patrol</h1>
+  <p class="tag">Tap the mosquitoes. Leave the frogs alone.</p>
+
+  <div class="bar">
+    <div class="stat">Score <b id="score">0</b></div>
+    <div class="timer"><i id="fill"></i></div>
+    <div class="stat"><b id="time">30</b>s</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="legend">
+    <span>🦟 +1</span><span>🦟✨ gold +5</span><span>🐸 -2 (bruh)</span>
+  </div>
+</main>
+
+<!-- start -->
+<div class="overlay" id="start">
+  <div class="inner" style="text-align:center">
+    <svg class="lilyicon" viewBox="-14 -14 28 28" aria-hidden="true">
+      <g fill="none" stroke="#ff3346" stroke-width="1.7" stroke-linecap="round">
+        <path id="lp" d="M0 0C4 -6 10 -7 13 -1"/>
+        <use href="#lp" transform="rotate(60)"/><use href="#lp" transform="rotate(120)"/>
+        <use href="#lp" transform="rotate(180)"/><use href="#lp" transform="rotate(240)"/><use href="#lp" transform="rotate(300)"/>
+      </g>
+      <circle r="2" fill="#ffd08a"/>
+    </svg>
+    <h1>Mosquito Patrol</h1>
+    <p class="tag" style="margin-top:10px;font-size:1.1rem">The garden has a mosquito problem and the frogs are no help. You have 30 seconds.</p>
+    <button class="btn" id="playBtn">Start patrol</button>
+  </div>
+</div>
+
+<!-- result + note -->
+<div class="overlay hidden" id="over">
+  <div class="inner" style="text-align:center">
+    <p class="tag">Patrol complete. You are now</p>
+    <h2 class="rank" id="rank"></h2>
+    <div class="big" id="final">0</div>
+    <p class="quip" id="quip"></p>
+
+    <div class="note" id="note">
+      <span class="tape"></span>
+      <p class="to">Hey Mia 🌸</p>
+      <p>Official report from the Mosquito Patrol: you're funny, you're kind, and you make a whole day better just by showing up. Your smile, your sense of humour and the way you talk are all top tier, and the garden totally agrees.</p>
+      <p>So by the power of the spider lilies and the lotus, you are officially named Queen of the Garden. Wear the crown. Ignore the frogs.</p>
+      <p class="sign">Andy 🖤</p>
+    </div>
+
+    <button class="btn" id="againBtn">Patrol again</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DURATION = 30000;
+
+  const grid = $('#grid');
+  const holes = [];
+  for (let i = 0; i < 9; i++) {
+    const b = document.createElement('button');
+    b.className = 'hole';
+    b.setAttribute('aria-label', 'Hole ' + (i + 1));
+    b.innerHTML = '<span class="crit"></span>';
+    b._crit = b.firstChild; b._tok = 0; b._type = null;
+    grid.appendChild(b); holes.push(b);
+  }
+
+  const RANKS = [
+    [0,  "Mosquito's Best Friend"],
+    [10, 'Certified Swatter'],
+    [20, 'Royal Pest Control'],
+    [30, 'Garden Guardian'],
+    [40, 'Queen of the Garden']
+  ];
+  const QUIPS = [
+    'The frogs are judging you.',
+    'Bruh.',
+    'The mosquitoes fear you now.',
+    'Somewhere, a frog is laughing.'
+  ];
+  const PRO = ['That was elite swatting.', 'The mosquitoes have filed a complaint.', 'Frogs: unbothered. You: unstoppable.'];
+
+  let state = 'idle', score = 0, endAt = 0, tick = null, spawnTimer = null, tok = 0;
+  const scoreEl = $('#score'), timeEl = $('#time'), fill = $('#fill');
+
+  function retire(h) {
+    h._type = null; h._tok = 0;
+    h.classList.remove('up', 'gold');
+  }
+  function spawn() {
+    if (state !== 'play') return;
+    const elapsed = DURATION - Math.max(0, endAt - performance.now());
+    const sec = elapsed / 1000;
+    const free = holes.filter(h => !h._type);
+    const active = holes.length - free.length;
+    if (free.length && active < 3) {
+      const h = pick(free), r = Math.random();
+      const type = r < .62 ? 'mosq' : r < .88 ? 'frog' : 'gold';
+      h._type = type; h._crit.textContent = type === 'frog' ? '🐸' : '🦟';
+      h.classList.toggle('gold', type === 'gold');
+      h.classList.add('up');
+      const my = h._tok = ++tok;
+      setTimeout(() => { if (h._tok === my) retire(h); }, Math.max(520, 980 - sec * 14));
+    }
+    spawnTimer = setTimeout(spawn, Math.max(320, 760 - sec * 13));
+  }
+
+  function floatText(text, el, color) {
+    const r = el.getBoundingClientRect();
+    const s = document.createElement('span');
+    s.className = 'float'; s.textContent = text; s.style.color = color;
+    s.style.left = (r.left + r.width / 2) + 'px'; s.style.top = (r.top + r.height * .3) + 'px';
+    document.body.appendChild(s); setTimeout(() => s.remove(), 950);
+  }
+  function whack(h) {
+    if (state !== 'play' || !h._type) return;
+    const type = h._type;
+    retire(h);
+    if (type === 'frog') {
+      score = Math.max(0, score - 2);
+      floatText('bruh 🐸', h, '#ff8a94');
+      h.classList.remove('oops'); void h.offsetWidth; h.classList.add('oops');
+      if (!reduce) { grid.classList.remove('shake'); void grid.offsetWidth; grid.classList.add('shake'); }
+      navigator.vibrate && navigator.vibrate([40, 30, 40]);
+    } else {
+      const g = type === 'gold' ? 5 : 1;
+      score += g;
+      floatText('+' + g + (type === 'gold' ? ' ✨' : ''), h, type === 'gold' ? '#ffd08a' : '#ffb8d1');
+      h.classList.remove('hit'); void h.offsetWidth; h.classList.add('hit');
+      navigator.vibrate && navigator.vibrate(15);
+    }
+    scoreEl.textContent = score;
+  }
+  holes.forEach(h => {
+    h.addEventListener('pointerdown', e => { e.preventDefault(); whack(h); });
+    h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); whack(h); } });
+  });
+
+  function start() {
+    state = 'play'; score = 0; scoreEl.textContent = 0;
+    holes.forEach(retire);
+    $('#start').classList.add('hidden'); $('#over').classList.add('hidden');
+    endAt = performance.now() + DURATION;
+    clearInterval(tick);
+    tick = setInterval(() => {
+      const left = Math.max(0, endAt - performance.now());
+      timeEl.textContent = Math.ceil(left / 1000);
+      fill.style.transform = `scaleX(${left / DURATION})`;
+      if (left <= 0) finish();
+    }, 100);
+    clearTimeout(spawnTimer); spawnTimer = setTimeout(spawn, 400);
+  }
+  function finish() {
+    state = 'over';
+    clearInterval(tick); clearTimeout(spawnTimer);
+    holes.forEach(retire);
+    timeEl.textContent = 0; fill.style.transform = 'scaleX(0)';
+    $('#rank').textContent = RANKS.reduce((r, x) => score >= x[0] ? x[1] : r, RANKS[0][1]);
+    $('#final').textContent = score;
+    $('#quip').textContent = pick(score >= 20 ? PRO : QUIPS);
+    // restart the note animation each time
+    const note = $('#note'); note.style.animation = 'none'; void note.offsetWidth; note.style.animation = '';
+    setTimeout(() => { $('#over').classList.remove('hidden'); $('#over').scrollTop = 0; }, 450);
+  }
+  $('#playBtn').addEventListener('click', start);
+  $('#againBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
